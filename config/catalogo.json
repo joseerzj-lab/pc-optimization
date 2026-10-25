@@ -1,0 +1,484 @@
+{
+  "version": 1,
+  "descripcion": "Catálogo curado de optimizaciones. El agente planificador elige de aquí según el diagnóstico y el perfil del usuario. Cada acción tiene pasos ejecutables por scripts/aplicar.ps1. Los beneficios son cualitativos y estimados: no son mediciones; se confirman en la fase de verificación.",
+  "perfiles": {
+    "conservador": "Solo riesgo bajo y reversible. Nada que cambie hábitos del usuario.",
+    "equilibrado": "Riesgo bajo y medio con condiciones cumplidas. Recomendado por defecto.",
+    "maximo": "Incluye ajustes de riesgo medio con beneficio incierto (probar y revertir si no ayudan). Nunca incluye riesgo alto sin pedido explícito."
+  },
+  "protegidos": {
+    "nota": "aplicar.ps1 rechaza cualquier paso que toque estos elementos, aunque venga en un plan aprobado.",
+    "servicios": [
+      "WinDefend", "WdNisSvc", "Sense", "SecurityHealthService", "wscsvc", "mpssvc", "BFE",
+      "wuauserv", "UsoSvc", "WaaSMedicSvc", "BITS", "DoSvc", "CryptSvc", "TrustedInstaller", "msiserver",
+      "RpcSs", "RpcEptMapper", "DcomLaunch", "LSM", "SamSs", "Schedule", "EventLog", "EventSystem",
+      "PlugPlay", "Power", "ProfSvc", "Winmgmt", "Dhcp", "Dnscache", "nsi", "NlaSvc", "netprofm",
+      "Netman", "Wcmsvc", "WlanSvc", "LanmanWorkstation", "WinHttpAutoProxySvc", "Audiosrv",
+      "AudioEndpointBuilder", "Themes", "UserManager", "StateRepository", "AppXSvc", "ClipSVC",
+      "CoreMessagingRegistrar", "SystemEventsBroker", "BrokerInfrastructure", "TimeBrokerSvc",
+      "gpsvc", "KeyIso", "VaultSvc", "Appinfo", "FontCache", "ShellHWDetection", "sppsvc",
+      "TokenBroker", "DispBrokerDesktopSvc", "StorSvc", "TextInputManagementService", "VSS",
+      "swprv", "DeviceInstall", "DsmSvc", "hidserv", "W32Time"
+    ],
+    "tareasPrefijo": [
+      "\\Microsoft\\Windows\\WindowsUpdate\\",
+      "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+      "\\Microsoft\\Windows\\WaaSMedic\\",
+      "\\Microsoft\\Windows\\Windows Defender\\",
+      "\\Microsoft\\Windows\\SystemRestore\\",
+      "\\Microsoft\\Windows\\Defrag\\",
+      "\\Microsoft\\Windows\\TPM\\",
+      "\\Microsoft\\Windows\\Time Synchronization\\",
+      "\\Microsoft\\Windows\\BitLocker\\",
+      "\\Microsoft\\Windows\\InstallService\\",
+      "\\Microsoft\\Windows\\Plug and Play\\",
+      "\\Microsoft\\Windows\\Registry\\"
+    ],
+    "registroPatrones": [
+      "*\\Windows Defender*",
+      "*\\WindowsUpdate*",
+      "*\\Session Manager\\Memory Management*",
+      "*\\Control\\Lsa*",
+      "*\\Winlogon*",
+      "*\\CurrentControlSet\\Services\\*",
+      "*\\DeviceGuard*",
+      "*\\SecurityHealth*",
+      "*\\Policies\\System*",
+      "*\\CurrentVersion\\SystemRestore*",
+      "*\\Control\\SafeBoot*",
+      "*\\BitLocker*"
+    ],
+    "appxPatrones": [
+      "Microsoft.WindowsStore*", "Microsoft.StorePurchaseApp*", "Microsoft.DesktopAppInstaller*",
+      "Microsoft.VCLibs*", "Microsoft.NET.*", "Microsoft.UI.Xaml*", "Microsoft.WindowsAppRuntime*",
+      "Microsoft.SecHealthUI*", "Microsoft.Windows.ShellExperienceHost*",
+      "Microsoft.Windows.StartMenuExperienceHost*", "MicrosoftWindows.Client.*",
+      "Microsoft.AAD.BrokerPlugin*", "Microsoft.AccountsControl*", "Microsoft.XboxIdentityProvider*"
+    ]
+  },
+  "acciones": [
+    {
+      "id": "energia-alto-rendimiento",
+      "categoria": "energia",
+      "titulo": "Plan de energía Alto rendimiento",
+      "descripcion": "Evita que la CPU baje frecuencia agresivamente. Si el plan no existe, se crea a partir de la plantilla estándar de Windows.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "PC de escritorio, o portátil que juega enchufado.",
+      "noAplicarSi": "Portátil que se usa mucho con batería (gasta más y calienta más). En portátiles con Modern Standby puede no estar disponible: usar energia-modo-rendimiento-manual.",
+      "beneficio": "Medio en juegos con CPU limitada; bajo en navegación.",
+      "pasos": [{ "tipo": "energia", "plan": "alto-rendimiento" }]
+    },
+    {
+      "id": "energia-modo-rendimiento-manual",
+      "categoria": "energia",
+      "titulo": "Modo de energía 'Mejor rendimiento' (portátiles)",
+      "descripcion": "Alternativa al plan Alto rendimiento cuando Windows solo ofrece el plan Equilibrado.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "Portátil enchufado mientras juega.",
+      "noAplicarSi": "Escritorio con plan Alto rendimiento ya aplicado.",
+      "beneficio": "Medio en portátiles que limitan potencia.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Windows 11: Configuración > Sistema > Energía y batería > Modo de energía > Mejor rendimiento (con el cargador conectado). Windows 10: clic en el ícono de batería y mover el control a 'Mejor rendimiento'." }]
+    },
+    {
+      "id": "juego-modo-juego",
+      "categoria": "juego",
+      "titulo": "Activar Modo de juego",
+      "descripcion": "Windows prioriza el juego en primer plano y evita instalar drivers o mostrar avisos de reinicio durante la partida.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "ajustes.modoJuego es 0.",
+      "noAplicarSi": "Ya está activo (valor 1 o ausente = activo por defecto).",
+      "beneficio": "Bajo a medio; más notorio en equipos con pocos núcleos.",
+      "pasos": [{ "tipo": "registro", "ruta": "HKCU:\\Software\\Microsoft\\GameBar", "nombre": "AutoGameModeEnabled", "valor": 1, "tipoDato": "DWord" }]
+    },
+    {
+      "id": "juego-sin-grabacion-fondo",
+      "categoria": "juego",
+      "titulo": "Desactivar grabación en segundo plano de Xbox Game Bar",
+      "descripcion": "La captura en segundo plano graba continuamente para poder guardar los últimos segundos; consume GPU y disco.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "El usuario no usa 'Grabar lo que pasó' de Game Bar.",
+      "noAplicarSi": "El usuario graba clips con Game Bar.",
+      "beneficio": "Bajo a medio en GPU integrada o de gama baja.",
+      "pasos": [
+        { "tipo": "registro", "ruta": "HKCU:\\System\\GameConfigStore", "nombre": "GameDVR_Enabled", "valor": 0, "tipoDato": "DWord" },
+        { "tipo": "registro", "ruta": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR", "nombre": "AppCaptureEnabled", "valor": 0, "tipoDato": "DWord" }
+      ]
+    },
+    {
+      "id": "juego-hags",
+      "categoria": "juego",
+      "titulo": "Programación de GPU acelerada por hardware (HAGS)",
+      "descripcion": "Deja que la GPU gestione su propia memoria de vídeo. El efecto varía según GPU, driver y juego: puede mejorar o empeorar.",
+      "riesgo": "medio", "reversible": true, "requiereReinicio": true,
+      "perfiles": ["maximo"],
+      "aplicarSi": "GPU dedicada moderna con driver reciente, y el usuario acepta probar y revertir si no ayuda.",
+      "noAplicarSi": "GPU integrada antigua o driver de más de un año.",
+      "beneficio": "Incierto: hay que medirlo en el juego del usuario.",
+      "pasos": [{ "tipo": "registro", "ruta": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers", "nombre": "HwSchMode", "valor": 2, "tipoDato": "DWord" }]
+    },
+    {
+      "id": "juego-frecuencia-monitor",
+      "categoria": "juego",
+      "titulo": "Usar la frecuencia máxima del monitor",
+      "descripcion": "Muchos monitores de 75/120/144 Hz vienen configurados a 60 Hz.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "hardware.gpu[].hzActual es menor que hzMax (el dato de WMI es indicativo: confirmarlo en la configuración).",
+      "noAplicarSi": "Ya está en la frecuencia máxima.",
+      "beneficio": "Alto en fluidez percibida si estaba mal configurado.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Configuración > Sistema > Pantalla > Pantalla avanzada > Elegir una frecuencia de actualización: seleccionar la más alta disponible." }]
+    },
+    {
+      "id": "juego-driver-gpu",
+      "categoria": "juego",
+      "titulo": "Actualizar el driver de la tarjeta gráfica",
+      "descripcion": "Los drivers nuevos suelen traer correcciones y optimizaciones para juegos recientes.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": true,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "hardware.gpu[].diasDriver mayor a 180, o problemas gráficos.",
+      "noAplicarSi": "Driver reciente y sin problemas.",
+      "beneficio": "Variable; alto si el driver es muy antiguo.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Descargar el driver SOLO desde el sitio o la app oficial del fabricante (NVIDIA App, AMD Software: Adrenalin Edition o Intel Driver & Support Assistant). No usar 'actualizadores de drivers' de terceros." }]
+    },
+    {
+      "id": "juego-gpu-dedicada-portatil",
+      "categoria": "juego",
+      "titulo": "Portátil con dos GPU: asignar los juegos a la dedicada",
+      "descripcion": "En portátiles con GPU integrada y dedicada, Windows puede ejecutar un juego en la integrada.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "sistema.esPortatil y hardware.gpu tiene una GPU integrada y una dedicada.",
+      "noAplicarSi": "Una sola GPU.",
+      "beneficio": "Alto si el juego estaba usando la integrada.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Configuración > Sistema > Pantalla > Gráficos > elegir el juego (o 'Examinar' su .exe) > Opciones > Alto rendimiento > Guardar. Repetir con cada juego." }]
+    },
+    {
+      "id": "juego-optimizacion-ventana",
+      "categoria": "juego",
+      "titulo": "Windows 11: optimizaciones para juegos en ventana",
+      "descripcion": "Mejora la latencia de los juegos en modo ventana o sin bordes.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "Windows 11 y el usuario juega en ventana o sin bordes.",
+      "noAplicarSi": "Windows 10 (no existe la opción).",
+      "beneficio": "Bajo a medio en juegos en ventana.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Configuración > Sistema > Pantalla > Gráficos > Opciones de configuración predeterminadas (o 'Cambiar la configuración de gráficos predeterminada') > activar 'Optimizaciones para juegos en ventana'. El nombre exacto puede variar según la versión." }]
+    },
+    {
+      "id": "visual-efectos-rendimiento",
+      "categoria": "visual",
+      "titulo": "Efectos visuales en modo rendimiento",
+      "descripcion": "Quita animaciones y sombras de Windows. Se hace desde la ventana clásica porque así se aplica de forma completa y fiable.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "GPU integrada, 8 GB de RAM o menos, o el usuario nota lentitud en ventanas.",
+      "noAplicarSi": "Equipo con GPU dedicada holgada y el usuario prefiere la estética.",
+      "beneficio": "Bajo a medio en equipos modestos.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Win+R > escribir SystemPropertiesPerformance > Enter > 'Ajustar para obtener el mejor rendimiento'. Luego volver a marcar 'Suavizar bordes para las fuentes de pantalla' y 'Mostrar vistas en miniatura en lugar de iconos' > Aceptar." }]
+    },
+    {
+      "id": "visual-transparencia-off",
+      "categoria": "visual",
+      "titulo": "Desactivar efectos de transparencia",
+      "descripcion": "Quita el desenfoque translúcido de la barra de tareas y menús.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "GPU integrada o de gama baja.",
+      "noAplicarSi": "El usuario quiere conservar la estética.",
+      "beneficio": "Bajo.",
+      "pasos": [{ "tipo": "registro", "ruta": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "nombre": "EnableTransparency", "valor": 0, "tipoDato": "DWord" }]
+    },
+    {
+      "id": "nav-edge-arranque-rapido-off",
+      "categoria": "navegador",
+      "titulo": "Edge: desactivar arranque acelerado",
+      "descripcion": "Evita que Edge quede cargado en memoria al iniciar Windows. Edge mostrará 'Administrado por tu organización' (es normal: es una directiva local).",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "Hay procesos msedge en reposo y Edge no es el navegador principal, o la RAM es escasa.",
+      "noAplicarSi": "El usuario prefiere que Edge abra al instante.",
+      "beneficio": "Bajo a medio en RAM al iniciar.",
+      "pasos": [{ "tipo": "registro", "ruta": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge", "nombre": "StartupBoostEnabled", "valor": 0, "tipoDato": "DWord" }]
+    },
+    {
+      "id": "nav-edge-segundo-plano-off",
+      "categoria": "navegador",
+      "titulo": "Edge: no seguir ejecutándose al cerrarlo",
+      "descripcion": "Cuando se cierra Edge, se cierra de verdad y libera memoria.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "Procesos msedge activos con el navegador cerrado.",
+      "noAplicarSi": "El usuario depende de notificaciones de sitios web con Edge cerrado.",
+      "beneficio": "Bajo a medio en RAM.",
+      "pasos": [{ "tipo": "registro", "ruta": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge", "nombre": "BackgroundModeEnabled", "valor": 0, "tipoDato": "DWord" }]
+    },
+    {
+      "id": "nav-chrome-segundo-plano-off",
+      "categoria": "navegador",
+      "titulo": "Chrome: no seguir ejecutándose al cerrarlo",
+      "descripcion": "Cuando se cierra Chrome, se cierra de verdad y libera memoria. Chrome mostrará 'Administrado por tu organización'.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "Chrome instalado y con procesos activos tras cerrarlo.",
+      "noAplicarSi": "El usuario usa apps o extensiones de Chrome que deben seguir activas.",
+      "beneficio": "Bajo a medio en RAM.",
+      "pasos": [{ "tipo": "registro", "ruta": "HKLM:\\SOFTWARE\\Policies\\Google\\Chrome", "nombre": "BackgroundModeEnabled", "valor": 0, "tipoDato": "DWord" }]
+    },
+    {
+      "id": "nav-ahorro-memoria",
+      "categoria": "navegador",
+      "titulo": "Navegador: ahorro de memoria, pestañas y extensiones",
+      "descripcion": "Las pestañas inactivas se suspenden y se quitan extensiones que no se usan. Es lo que más RAM libera al navegar.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "El navegador está entre los procesos que más memoria usan, o hay 8 GB de RAM o menos.",
+      "noAplicarSi": "Nunca está de más revisarlo.",
+      "beneficio": "Alto en RAM cuando hay muchas pestañas.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Chrome: Configuración > Rendimiento > activar 'Ahorro de memoria'. Edge: Configuración > Sistema y rendimiento > activar 'Pestañas en suspensión' y el modo de eficiencia. En ambos: revisar extensiones (chrome://extensions o edge://extensions) y quitar las que no se usan; mantener activada la aceleración por hardware. Los nombres de los menús pueden variar según la versión." }]
+    },
+    {
+      "id": "svc-telemetria",
+      "categoria": "servicios",
+      "titulo": "Deshabilitar servicio de telemetría (DiagTrack)",
+      "descripcion": "'Experiencias del usuario y telemetría asociadas'. Envía datos de diagnóstico a Microsoft; no es necesario para el funcionamiento.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "Está en ejecución.",
+      "noAplicarSi": "Equipo administrado por una empresa.",
+      "beneficio": "Bajo; reduce actividad de disco y red en segundo plano.",
+      "pasos": [{ "tipo": "servicio", "nombre": "DiagTrack", "inicio": "Disabled", "detener": true }]
+    },
+    {
+      "id": "tarea-telemetria",
+      "categoria": "tareas",
+      "titulo": "Deshabilitar tareas de telemetría y compatibilidad",
+      "descripcion": "Tareas que analizan el sistema periódicamente (CompatTelRunner) y pueden causar picos de CPU y disco en equipos modestos.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "Existen y están habilitadas.",
+      "noAplicarSi": "Equipo administrado por una empresa.",
+      "beneficio": "Bajo; evita picos ocasionales.",
+      "pasos": [
+        { "tipo": "tarea", "ruta": "\\Microsoft\\Windows\\Application Experience\\", "nombre": "Microsoft Compatibility Appraiser" },
+        { "tipo": "tarea", "ruta": "\\Microsoft\\Windows\\Application Experience\\", "nombre": "ProgramDataUpdater" },
+        { "tipo": "tarea", "ruta": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\", "nombre": "Consolidator" },
+        { "tipo": "tarea", "ruta": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\", "nombre": "UsbCeip" }
+      ]
+    },
+    {
+      "id": "svc-impresion",
+      "categoria": "servicios",
+      "titulo": "Deshabilitar cola de impresión (Spooler)",
+      "descripcion": "Solo necesaria para imprimir, incluido 'Microsoft Print to PDF'.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "El usuario confirma que no imprime ni usa 'Imprimir a PDF'.",
+      "noAplicarSi": "Usa impresora o Imprimir a PDF.",
+      "beneficio": "Bajo; además reduce superficie de ataque.",
+      "pasos": [{ "tipo": "servicio", "nombre": "Spooler", "inicio": "Disabled", "detener": true }]
+    },
+    {
+      "id": "svc-fax-mapas-demo",
+      "categoria": "servicios",
+      "titulo": "Deshabilitar Fax, Mapas descargados y Modo demo",
+      "descripcion": "Servicios que casi nadie usa en un PC doméstico. Si alguno no existe, se omite.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "El usuario no usa fax ni la app Mapas sin conexión.",
+      "noAplicarSi": "Usa alguno de ellos.",
+      "beneficio": "Muy bajo; limpieza.",
+      "pasos": [
+        { "tipo": "servicio", "nombre": "Fax", "inicio": "Disabled", "detener": true },
+        { "tipo": "servicio", "nombre": "MapsBroker", "inicio": "Disabled", "detener": true },
+        { "tipo": "servicio", "nombre": "RetailDemo", "inicio": "Disabled", "detener": true }
+      ]
+    },
+    {
+      "id": "svc-sysmain",
+      "categoria": "servicios",
+      "titulo": "Deshabilitar SysMain (Superfetch)",
+      "descripcion": "Precarga en RAM las apps que se usan seguido. En un disco duro mecánico con poca RAM puede saturar el disco.",
+      "riesgo": "medio", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "discos.tipoDiscoSistema es HDD y metricas.discoOcupadoPct es alto en reposo (más de 50 %).",
+      "noAplicarSi": "Disco del sistema SSD: la ganancia es mínima y las apps pueden abrir más lento.",
+      "beneficio": "Medio en HDD saturado; nulo o negativo en SSD.",
+      "pasos": [{ "tipo": "servicio", "nombre": "SysMain", "inicio": "Disabled", "detener": true }]
+    },
+    {
+      "id": "svc-busqueda",
+      "categoria": "servicios",
+      "titulo": "Deshabilitar indexador de búsqueda (WSearch)",
+      "descripcion": "Indexa archivos para búsquedas rápidas. Sin él, buscar archivos o correo en Outlook es lento.",
+      "riesgo": "medio", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["maximo"],
+      "aplicarSi": "HDD con disco saturado en reposo y el usuario no busca archivos desde Inicio/Explorador.",
+      "noAplicarSi": "SSD, o el usuario usa la búsqueda de Windows u Outlook.",
+      "beneficio": "Medio en HDD saturado.",
+      "pasos": [{ "tipo": "servicio", "nombre": "WSearch", "inicio": "Disabled", "detener": true }]
+    },
+    {
+      "id": "sistema-apps-segundo-plano-win10",
+      "categoria": "sistema",
+      "titulo": "Windows 10: impedir apps de la Store en segundo plano",
+      "descripcion": "Interruptor global de Windows 10. En Windows 11 el control es por aplicación (Configuración > Aplicaciones > Aplicaciones instaladas > Opciones avanzadas).",
+      "riesgo": "medio", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["maximo"],
+      "aplicarSi": "Windows 10 y RAM escasa.",
+      "noAplicarSi": "Windows 11, o el usuario depende de notificaciones de apps de la Store (Correo, Calendario, WhatsApp de la Store).",
+      "beneficio": "Bajo.",
+      "pasos": [{ "tipo": "registro", "ruta": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications", "nombre": "GlobalUserDisabled", "valor": 1, "tipoDato": "DWord" }]
+    },
+    {
+      "id": "sistema-reinicio-regular",
+      "categoria": "sistema",
+      "titulo": "Reiniciar el equipo con regularidad",
+      "descripcion": "Con el 'inicio rápido' de Windows, apagar no reinicia el kernel: fugas de memoria y procesos colgados se arrastran durante días.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": true,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "sistema.diasEncendido mayor a 7.",
+      "noAplicarSi": "Se reinicia seguido.",
+      "beneficio": "Medio si llevaba muchos días sin reiniciar.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Usar Inicio > Reiniciar (no Apagar) al menos una vez por semana, y siempre antes de una sesión de juego larga." }]
+    },
+    {
+      "id": "limpieza-temporales",
+      "categoria": "limpieza",
+      "titulo": "Borrar archivos temporales",
+      "descripcion": "Vacía las carpetas temporales del usuario y de Windows. Los archivos en uso se saltan.",
+      "riesgo": "bajo", "reversible": false, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "temporales suman más de 500 MB o hay poco espacio libre.",
+      "noAplicarSi": "Hay una instalación en curso.",
+      "beneficio": "Libera espacio; no acelera por sí solo salvo con el disco casi lleno.",
+      "pasos": [
+        { "tipo": "limpieza", "objetivo": "temp-usuario" },
+        { "tipo": "limpieza", "objetivo": "temp-windows" }
+      ]
+    },
+    {
+      "id": "limpieza-cache-entrega",
+      "categoria": "limpieza",
+      "titulo": "Vaciar caché de Optimización de distribución",
+      "descripcion": "Copias de actualizaciones ya instaladas que Windows guarda para compartir.",
+      "riesgo": "bajo", "reversible": false, "requiereReinicio": false,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "Poco espacio libre en la unidad del sistema.",
+      "noAplicarSi": "Espacio holgado.",
+      "beneficio": "Libera espacio.",
+      "pasos": [{ "tipo": "limpieza", "objetivo": "cache-entrega-optimizacion" }]
+    },
+    {
+      "id": "limpieza-componentes",
+      "categoria": "limpieza",
+      "titulo": "Limpiar componentes antiguos de Windows Update (DISM)",
+      "descripcion": "Elimina versiones reemplazadas de componentes. Tras esto no se pueden desinstalar actualizaciones antiguas. Puede tardar bastante.",
+      "riesgo": "bajo", "reversible": false, "requiereReinicio": false,
+      "perfiles": ["maximo"],
+      "aplicarSi": "Unidad del sistema con menos de 15 % libre.",
+      "noAplicarSi": "Una actualización reciente está dando problemas (se perdería la opción de desinstalarla).",
+      "beneficio": "Libera espacio (variable).",
+      "pasos": [{ "tipo": "mantenimiento", "objetivo": "dism-limpiar-componentes" }]
+    },
+    {
+      "id": "limpieza-papelera",
+      "categoria": "limpieza",
+      "titulo": "Vaciar la papelera de reciclaje",
+      "descripcion": "Borra definitivamente lo que está en la papelera.",
+      "riesgo": "medio", "reversible": false, "requiereReinicio": false,
+      "perfiles": [],
+      "aplicarSi": "Solo si el usuario lo pide expresamente.",
+      "noAplicarSi": "Por defecto.",
+      "beneficio": "Libera espacio.",
+      "pasos": [{ "tipo": "limpieza", "objetivo": "papelera" }]
+    },
+    {
+      "id": "mant-optimizar-unidad",
+      "categoria": "mantenimiento",
+      "titulo": "Optimizar la unidad del sistema",
+      "descripcion": "TRIM en SSD o desfragmentación en HDD, según el tipo detectado.",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "ajustes.desfragProgramada está deshabilitada o el disco es HDD.",
+      "noAplicarSi": "Tipo de disco desconocido.",
+      "beneficio": "Medio en HDD fragmentado; bajo en SSD.",
+      "pasos": [{ "tipo": "mantenimiento", "objetivo": "optimizar-unidad" }]
+    },
+    {
+      "id": "mant-reparar-sistema",
+      "categoria": "mantenimiento",
+      "titulo": "Reparar archivos de Windows (DISM + SFC)",
+      "descripcion": "Comprueba y repara archivos del sistema dañados. Tarda aproximadamente entre 15 y 45 minutos (depende del equipo).",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": true,
+      "perfiles": ["equilibrado", "maximo"],
+      "aplicarSi": "estabilidad muestra fallos frecuentes de apps de Windows, pantallazos azules o errores de sistema recurrentes.",
+      "noAplicarSi": "Sistema estable.",
+      "beneficio": "Alto si había corrupción; nulo si no.",
+      "pasos": [
+        { "tipo": "mantenimiento", "objetivo": "dism-reparar" },
+        { "tipo": "mantenimiento", "objetivo": "sfc" }
+      ]
+    },
+    {
+      "id": "mant-escaneo-defender",
+      "categoria": "seguridad",
+      "titulo": "Análisis rápido con Microsoft Defender",
+      "descripcion": "Busca malware (incluidos mineros de criptomonedas que roban CPU/GPU).",
+      "riesgo": "bajo", "reversible": true, "requiereReinicio": false,
+      "perfiles": ["conservador", "equilibrado", "maximo"],
+      "aplicarSi": "Hay procesos sospechosos, el último análisis tiene más de 7 días o hay CPU/GPU alta sin explicación.",
+      "noAplicarSi": "Hay otro antivirus activo que desactivó Defender: usar ese antivirus.",
+      "beneficio": "Alto si había malware.",
+      "pasos": [{ "tipo": "mantenimiento", "objetivo": "escaneo-defender-rapido" }]
+    },
+    {
+      "id": "seg-integridad-memoria",
+      "categoria": "seguridad",
+      "titulo": "Integridad de memoria (solo a pedido expreso)",
+      "descripcion": "Desactivarla puede dar algo de rendimiento en algunos juegos, pero quita una protección del núcleo de Windows contra malware. NO se propone por defecto.",
+      "riesgo": "alto", "reversible": true, "requiereReinicio": true,
+      "perfiles": [],
+      "aplicarSi": "Solo si el usuario lo pide explícitamente después de entender el riesgo.",
+      "noAplicarSi": "Por defecto, siempre.",
+      "beneficio": "Incierto; depende del juego y del hardware.",
+      "pasos": [{ "tipo": "manual", "instrucciones": "Seguridad de Windows > Seguridad del dispositivo > Aislamiento del núcleo > Integridad de memoria. Se recomienda dejarla activada." }]
+    }
+  ],
+  "plantillasDinamicas": {
+    "nota": "Acciones que el planificador crea a partir del diagnóstico (no están fijas en el catálogo). Cada una requiere que el usuario confirme el elemento concreto.",
+    "inicio-deshabilitar": {
+      "descripcion": "Deshabilita un programa de inicio igual que el Administrador de tareas (no lo desinstala).",
+      "riesgo": "bajo", "reversible": true,
+      "paso": { "tipo": "inicio", "ubicacion": "<inicio.entradas[].ubicacion>", "nombre": "<inicio.entradas[].nombre>" },
+      "nunca": "Antivirus, drivers de audio/touchpad/GPU (Realtek, Synaptics, NVIDIA/AMD/Intel), OneDrive si el usuario sincroniza archivos, software de periféricos que el usuario usa."
+    },
+    "servicio-terceros-manual": {
+      "descripcion": "Pasa a Manual un servicio de terceros automático (actualizadores, utilidades del fabricante, RGB, launchers). Manual = arranca solo cuando un programa lo necesita.",
+      "riesgo": "medio", "reversible": true,
+      "paso": { "tipo": "servicio", "nombre": "<servicios.terceros[].nombre>", "inicio": "Manual", "detener": false },
+      "nunca": "Servicios de antivirus, drivers, anti-trampas de juegos (EasyAntiCheat, BattlEye, Vanguard), VPN que el usuario usa."
+    },
+    "tarea-terceros-deshabilitar": {
+      "descripcion": "Deshabilita una tarea programada de terceros (típicamente actualizadores).",
+      "riesgo": "bajo", "reversible": true,
+      "paso": { "tipo": "tarea", "ruta": "<tareas.terceros[].ruta>", "nombre": "<tareas.terceros[].nombre>" },
+      "nunca": "Tareas del antivirus o de copias de seguridad que el usuario usa."
+    },
+    "appx-quitar": {
+      "descripcion": "Desinstala una app preinstalada de la Store (juegos de prueba, apps del fabricante). Se puede reinstalar desde la Microsoft Store.",
+      "riesgo": "bajo", "reversible": false,
+      "paso": { "tipo": "appx", "paquete": "<aplicaciones.store[].nombre>" },
+      "nunca": "Paquetes de protegidos.appxPatrones, Xbox/Game Bar si el usuario juega con Game Pass o usa Game Bar."
+    },
+    "desinstalar-programa": {
+      "descripcion": "Programas Win32 que no se usan (trials de antivirus, 'optimizadores', barras de herramientas, software del fabricante redundante). Se desinstalan a mano porque cada desinstalador es interactivo.",
+      "riesgo": "bajo", "reversible": false,
+      "paso": { "tipo": "manual", "instrucciones": "Configuración > Aplicaciones > Aplicaciones instaladas > <nombre> > Desinstalar." },
+      "nunca": "Drivers, runtimes (Visual C++, .NET, DirectX), antivirus activo único."
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "nota": "EJEMPLO ilustrativo del formato que genera el agente planificador. Los valores no corresponden a ningún equipo real.",
+  "creado": "2026-01-01T12:30:00",
+  "perfil": "equilibrado",
+  "diagnostico": "reportes/20260101-120000/diagnostico-antes.json",
+  "aprobado": false,
+  "aprobadoFecha": null,
+  "resumen": "Portátil con 8 GB de RAM en un solo módulo, SSD con 18 % libre, 14 programas de inicio y el navegador ocupando la mayor parte de la RAM en reposo.",
+  "acciones": [
+    {
+      "id": "energia-modo-rendimiento-manual",
+      "origen": "catalogo",
+      "titulo": "Modo de energía 'Mejor rendimiento' (portátiles)",
+      "motivo": "Portátil con solo el plan Equilibrado disponible; el usuario juega enchufado.",
+      "riesgo": "bajo",
+      "reversible": true,
+      "requiereReinicio": false,
+      "pasos": [{ "tipo": "manual", "instrucciones": "Configuración > Sistema > Energía y batería > Modo de energía > Mejor rendimiento." }]
+    },
+    {
+      "id": "juego-sin-grabacion-fondo",
+      "origen": "catalogo",
+      "titulo": "Desactivar grabación en segundo plano de Xbox Game Bar",
+      "motivo": "La captura en segundo plano está activa y el usuario confirmó que no graba clips.",
+      "riesgo": "bajo",
+      "reversible": true,
+      "requiereReinicio": false,
+      "pasos": [
+        { "tipo": "registro", "ruta": "HKCU:\\System\\GameConfigStore", "nombre": "GameDVR_Enabled", "valor": 0, "tipoDato": "DWord" },
+        { "tipo": "registro", "ruta": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR", "nombre": "AppCaptureEnabled", "valor": 0, "tipoDato": "DWord" }
+      ]
+    },
+    {
+      "id": "inicio-ejemplo-launcher",
+      "origen": "diagnostico",
+      "plantilla": "inicio-deshabilitar",
+      "titulo": "No abrir el launcher de juegos al iniciar Windows",
+      "motivo": "Firmado por su fabricante, ocupa memoria en reposo y el usuario lo abre solo cuando va a jugar.",
+      "riesgo": "bajo",
+      "reversible": true,
+      "requiereReinicio": false,
+      "pasos": [{ "tipo": "inicio", "ubicacion": "HKCU-Run", "nombre": "EjemploLauncher" }]
+    },
+    {
+      "id": "svc-telemetria",
+      "origen": "catalogo",
+      "titulo": "Deshabilitar servicio de telemetría (DiagTrack)",
+      "motivo": "Servicio en ejecución, no necesario en un PC personal.",
+      "riesgo": "bajo",
+      "reversible": true,
+      "requiereReinicio": false,
+      "pasos": [{ "tipo": "servicio", "nombre": "DiagTrack", "inicio": "Disabled", "detener": true }]
+    },
+    {
+      "id": "limpieza-temporales",
+      "origen": "catalogo",
+      "titulo": "Borrar archivos temporales",
+      "motivo": "Los temporales ocupan varios GB y el disco tiene poco espacio libre.",
+      "riesgo": "bajo",
+      "reversible": false,
+      "requiereReinicio": false,
+      "pasos": [
+        { "tipo": "limpieza", "objetivo": "temp-usuario" },
+        { "tipo": "limpieza", "objetivo": "temp-windows" }
+      ]
+    }
+  ],
+  "recomendacionesHardware": [
+    "Agregar un segundo módulo de RAM igual al actual para trabajar en doble canal (mejora notable en GPU integrada)."
+  ]
+}
